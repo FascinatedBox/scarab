@@ -8,10 +8,10 @@
 #include <libpng16/png.h>
 
 typedef enum {
-    opt_display,
-    opt_output,
-    opt_window,
-    opt_help,
+    opt_display = 'd',
+    opt_help = 'h',
+    opt_output = 'o',
+    opt_window = 'w',
 } optlist_t;
 
 struct option longopts[] = {
@@ -67,22 +67,18 @@ void parse_options(int argc, char **argv)
     while ((c = getopt_long_only(argc, argv, "d:ho:w:",
                                  longopts, &option_index)) != -1) {
         switch (c) {
-            case 'd':
             case opt_display:
                 s_dpy_name = strdup(optarg);
                 break;
-            case 'o':
             case opt_output:
                 s_filename = strdup(optarg);
                 break;
-            case 'w':
             case opt_window:
                 s_window = strtol(optarg, NULL, 0);
                 if (s_window == 0)
                     fail("Invalid window id '%s'.", optarg);
 
                 break;
-            case 'h':
             case opt_help:
                 usage();
                 break;
