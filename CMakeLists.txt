@@ -1,12 +1,20 @@
 project(scarab)
 cmake_minimum_required(VERSION 3.5.0)
 
+include(FindPkgConfig)
+
 if(WITH_DEBUG)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O0")
 endif()
 
 find_package(PNG)
-find_package(X11)
+
+pkg_check_modules(
+    XCB_LIBS
+        xcb
+        xcb-image
+    REQUIRED
+)
 
 add_executable(
     scarab
@@ -16,7 +24,8 @@ add_executable(
 target_link_libraries(
     scarab
         png
-        X11
+        xcb
+        xcb-image
 )
 
 install(

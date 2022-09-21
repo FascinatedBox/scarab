@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <X11/Xutil.h>
-
 #include <libpng16/png.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_image.h>
 
 typedef enum {
     opt_display = 'd',
@@ -31,12 +32,11 @@ static const char *usage_text =
     "-h, --help                     display this help and exit\n"
     ;
 
-#define INVALID_WINDOW (~0)
 
-char *s_dpy_name = NULL;
+char *s_conn_name = NULL;
 char *s_filename = NULL;
-Window s_window = INVALID_WINDOW;
-Display *s_dpy = NULL;
+xcb_window_t s_window = XCB_WINDOW_NONE;
+xcb_connection_t *s_conn = NULL;
 
 void usage()
 {
@@ -54,8 +54,8 @@ void fail(const char *msg, ...)
     va_end(args);
     fputc('\n', stderr);
 
-    if (s_dpy)
-        XCloseDisplay(s_dpy);
+    if (s_conn)
+        xcb_disconnect(s_conn);
 
     exit(EXIT_FAILURE);
 }
@@ -68,15 +68,16 @@ void parse_options(int argc, char **argv)
                                  longopts, &option_index)) != -1) {
         switch (c) {
             case opt_display:
-                s_dpy_name = optarg;
+                s_conn_name = optarg;
                 break;
             case opt_output:
                 s_filename = optarg;
                 break;
             case opt_window:
                 s_window = strtol(optarg, NULL, 0);
+
                 if (s_window == 0)
-                    fail("Invalid window id '%s'.", optarg);
+                    fail("'%s' is not a window id for -w/--window.", optarg);
 
                 break;
             case opt_help:
@@ -88,17 +89,19 @@ void parse_options(int argc, char **argv)
         }
     }
 
-    if (s_window == INVALID_WINDOW)
-        fail("A window must be provided with '-w <wid>'.");
+    if (s_window == XCB_WINDOW_NONE)
+        fail("A window must be provided with '-w/--window <wid>'.");
 
-    if (s_dpy_name == NULL)
-        s_dpy_name = getenv("DISPLAY");
+    if (s_conn_name == NULL)
+        s_conn_name = getenv("DISPLAY");
+
+    s_conn = xcb_connect(s_conn_name, NULL);
 
     if (s_filename == NULL)
         s_filename = strdup("screenshot.png");
 }
 
-void write_png_for_ximage(XImage *image)
+void write_png_for_ximage(xcb_image_t *image)
 {
     FILE *f = fopen(s_filename, "wb");
 
@@ -126,20 +129,17 @@ void write_png_for_ximage(XImage *image)
 
     /* Each byte is R, G, B, so make space for 3 * width * byte. */
     png_bytep p_row = malloc(3 * image->width * sizeof(png_byte));
-    unsigned long red_mask = image->red_mask;
-    unsigned long green_mask = image->green_mask;
-    unsigned long blue_mask = image->blue_mask;
     int x, y;
 
     for (y = 0; y < image->height; y++) {
         png_byte *p_byte = p_row;
 
         for (x = 0; x < image->width; x++) {
-            unsigned long pixel = XGetPixel(image, x, y);
+            uint32_t pixel = xcb_image_get_pixel(image, x, y);
 
-            *p_byte = (pixel & red_mask) >> 16;  p_byte++;
-            *p_byte = (pixel & green_mask) >> 8; p_byte++;
-            *p_byte = (pixel & blue_mask);       p_byte++;
+            *p_byte = pixel >> 16; p_byte++;
+            *p_byte = pixel >> 8;  p_byte++;
+            *p_byte = pixel;       p_byte++;
         }
 
         png_write_row(p_struct, p_row);
@@ -156,17 +156,31 @@ void write_png_for_ximage(XImage *image)
 int main(int argc, char **argv)
 {
     parse_options(argc, argv);
-    s_dpy = XOpenDisplay(s_dpy_name);
 
-    XWindowAttributes attr;
+    xcb_get_geometry_cookie_t c = xcb_get_geometry(s_conn, s_window);
+    xcb_get_geometry_reply_t *r = xcb_get_geometry_reply(s_conn, c, NULL);
 
-    XGetWindowAttributes(s_dpy, s_window, &attr);
+    if (r == NULL)
+        fail("Window 0x%.8x cannot be found on '%s'.", s_window, s_conn_name);
 
-    XImage *image = XGetImage(s_dpy, s_window, 0, 0, attr.width, attr.height,
-                              AllPlanes, ZPixmap);
+    xcb_image_t *image = xcb_image_get(s_conn,
+            s_window,
+            /* Okay, give me the entire window... */
+            0,
+            0,
+            r->width,
+            r->height,
+            /* ...in the best quality you've got. */
+            ~0,
+            XCB_IMAGE_FORMAT_Z_PIXMAP);
+
+    if (image == NULL)
+        fail("Window 0x%.8x on '%s' does not have pixels to grab.", s_window,
+             s_conn_name);
 
     write_png_for_ximage(image);
-    XDestroyImage(image);
-    XCloseDisplay(s_dpy);
+    xcb_image_destroy(image);
+    free(r);
+    xcb_disconnect(s_conn);
     return EXIT_SUCCESS;
 }
