@@ -68,10 +68,10 @@ void parse_options(int argc, char **argv)
                                  longopts, &option_index)) != -1) {
         switch (c) {
             case opt_display:
-                s_dpy_name = strdup(optarg);
+                s_dpy_name = optarg;
                 break;
             case opt_output:
-                s_filename = strdup(optarg);
+                s_filename = optarg;
                 break;
             case opt_window:
                 s_window = strtol(optarg, NULL, 0);
@@ -168,6 +168,5 @@ int main(int argc, char **argv)
     write_png_for_ximage(image);
     XDestroyImage(image);
     XCloseDisplay(s_dpy);
-    free(s_filename);
     return EXIT_SUCCESS;
 }
