@@ -19,6 +19,7 @@ pkg_check_modules(
 add_executable(
     scarab
         src/scarab.c
+        src/xpick.c
 )
 
 target_link_libraries(

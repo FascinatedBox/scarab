@@ -8,6 +8,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
 
+#include "xpick.h"
+
 typedef enum {
     opt_display = 'd',
     opt_help = 'h',
@@ -89,13 +91,26 @@ void parse_options(int argc, char **argv)
         }
     }
 
-    if (s_window == XCB_WINDOW_NONE)
-        fail("A window must be provided with '-w/--window <wid>'.");
-
     if (s_conn_name == NULL)
         s_conn_name = getenv("DISPLAY");
 
     s_conn = xcb_connect(s_conn_name, NULL);
+
+    if (s_window == XCB_WINDOW_NONE) {
+        xpick_state_t *s = xpick_state_new(s_conn);
+
+        if (xpick_cursor_grab(s, 0) == 0)
+            fail("No window provided and can't grab the cursor.");
+
+        puts("scarab: Left click a window to take a screenshot of it.");
+        xpick_cursor_pick_window(s);
+        xpick_cursor_ungrab(s);
+        s_window = xpick_window_get(s);
+        xpick_state_free(s);
+
+        if (s_window == XCB_WINDOW_NONE)
+            fail("No window provided and window selection canceled.");
+    }
 
     if (s_filename == NULL)
         s_filename = strdup("screenshot.png");

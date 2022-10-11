@@ -27,8 +27,10 @@ Scarab is not able to access a window's titlebar or borders.
     -h, --help                     display this help and exit
 ```
 
-Scarab does not include a means of selecting a window, because I use it from a
-script that uses (bo)xdotool to get a window id.
+If no window is provided with `-w` / `--window`, scarab will switch the cursor
+to a crosshair. A window can then be selected using the left mouse button, after
+which the cursor will revert back to how it was. Alternatively, pressing any
+other mouse button will cancel the selection.
 
 ### Why
 
