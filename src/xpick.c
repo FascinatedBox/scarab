@@ -167,6 +167,8 @@ bool xpick_cursor_pick_window(xpick_state_t *s)
             else
                 /* It's the root window. */
                 pick_w = bp->root;
+
+            free(event);
         }
         else {
             s->pick_w = pick_w;
