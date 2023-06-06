@@ -73,7 +73,7 @@ void parse_options(int argc, char **argv)
                 s_conn_name = optarg;
                 break;
             case opt_output:
-                s_filename = optarg;
+                s_filename = strdup(optarg);
                 break;
             case opt_window:
                 s_window = strtol(optarg, NULL, 0);
@@ -196,6 +196,7 @@ int main(int argc, char **argv)
     write_png_for_ximage(image);
     xcb_image_destroy(image);
     free(r);
+    free(s_filename);
     xcb_disconnect(s_conn);
     return EXIT_SUCCESS;
 }
