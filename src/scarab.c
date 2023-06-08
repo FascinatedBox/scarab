@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <libpng16/png.h>
 
@@ -11,13 +12,15 @@
 #include "xpick.h"
 
 typedef enum {
-    opt_display = 'd',
+    opt_display,
+    opt_delay = 'd',
     opt_help = 'h',
     opt_output = 'o',
     opt_window = 'w',
 } optlist_t;
 
 struct option longopts[] = {
+    { "delay", required_argument, NULL, opt_delay },
     { "display", required_argument, NULL, opt_display },
     { "output", required_argument, NULL, opt_output },
     { "window", required_argument, NULL, opt_window },
@@ -27,7 +30,8 @@ struct option longopts[] = {
 
 static const char *usage_text =
     "Usage: scarab [options]\n"
-    "-d, --display <dpy>            connect to <dpy> instead of $DISPLAY\n"
+    "    --display <dpy>            connect to <dpy> instead of $DISPLAY\n"
+    "-d, --delay <seconds>          wait <seconds> before taking shot\n"
     "-o, --output <filename>        specify an output filename\n"
     "                               (default: screenshot.png)\n"
     "-w, --window <wid>             select window with id <wid>\n"
@@ -35,6 +39,7 @@ static const char *usage_text =
     ;
 
 
+int s_delay = 0;
 char *s_conn_name = NULL;
 char *s_filename = NULL;
 xcb_window_t s_window = XCB_WINDOW_NONE;
@@ -69,6 +74,12 @@ void parse_options(int argc, char **argv)
     while ((c = getopt_long_only(argc, argv, "d:ho:w:",
                                  longopts, &option_index)) != -1) {
         switch (c) {
+            case opt_delay:
+                s_delay = atoi(optarg);
+                if (s_delay < 0)
+                    fail("Invalid delay '%s'.", optarg);
+
+                break;
             case opt_display:
                 s_conn_name = optarg;
                 break;
@@ -177,6 +188,9 @@ int main(int argc, char **argv)
 
     if (r == NULL)
         fail("Window 0x%.8x cannot be found on '%s'.", s_window, s_conn_name);
+
+    if (s_delay)
+        sleep(s_delay);
 
     xcb_image_t *image = xcb_image_get(s_conn,
             s_window,
