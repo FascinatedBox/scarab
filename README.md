@@ -20,7 +20,8 @@ Scarab is not able to access a window's titlebar or borders.
 ### Usage
 
 ```
-    -d, --display <dpy>            connect to <dpy> instead of $DISPLAY
+        --display <dpy>            connect to <dpy> instead of $DISPLAY
+    -d, --delay <seconds>          wait <seconds> before taking shot
     -o, --output <filename>        specify an output filename
                                    (default: screenshot.png)
     -w, --window <wid>             select window with id <wid>
