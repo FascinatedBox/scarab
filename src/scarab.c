@@ -35,9 +35,8 @@ static const char *usage_text =
     "-o, --output <filename>        specify an output filename\n"
     "                               (default: screenshot.png)\n"
     "-w, --window <wid>             select window with id <wid>\n"
-    "-h, --help                     display this help and exit\n"
+    "-h, --help                     display this help and exit"
     ;
-
 
 int s_delay = 0;
 char *s_conn_name = NULL;
