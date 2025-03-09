@@ -1,5 +1,5 @@
-project(scarab)
 cmake_minimum_required(VERSION 3.5.0)
+project(scarab)
 
 include(FindPkgConfig)
 find_package(PNG REQUIRED)
